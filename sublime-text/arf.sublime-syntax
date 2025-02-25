@@ -1,0 +1,300 @@
+%YAML 1.2
+---
+# See http://www.sublimetext.com/docs/syntax.html
+file_extensions:
+  - arf
+name: arf
+scope: source.arf
+variables:
+  primitives: '(u?int(8|16|32|64))|(float(32|64))|(string|boolean)'
+  camel_case_name: '[A-Z][a-zA-Z0-9]*'
+  snake_case_name: '[a-z][a-z_0-9]*'
+
+contexts:
+  main:
+    - include: package
+    - include: basic
+    - include: annotation
+    - include: struct_definition
+    - include: enum_definition
+    - include: service_definition
+    - include: imports
+
+  imports:
+    - match: \b(import)\b
+      captures:
+        1: keyword.import.arf
+      push: import_value
+
+  import_value:
+    - include: strings
+    - match: ';'
+      scope: punctuation.terminator.arf
+      pop: true
+    - match: '({{snake_case_name}}|{{camel_case_name}})'
+      scope: invalid.illegal.arf
+
+  package:
+    - match: \b(package)\b
+      captures:
+        1: keyword.arf
+      push: package_value
+
+  package_value:
+    - match: '(\.\.)|(\.;)|({{camel_case_name}})'
+      scope: invalid.illegal.arf
+    - match: '({{camel_case_name}})(\.?)'
+      captures:
+        1: source.arf
+        2: punctuation.separator.sequence.arf
+    - match: ';'
+      scope: punctuation.terminator.arf
+      pop: true
+
+  any_type:
+    - match: '(map)(<)'
+      captures:
+        1: keyword.arf
+        2: punctuation.definition.generic.begin.arf
+      push: [map_value, map_key]
+    - match: '(array)(<)'
+      captures:
+        1: keyword.arf
+        2: punctuation.definition.generic.begin.arf
+      push: array_type
+    - match: '(optional)(<)'
+      captures:
+        1: keyword.arf
+        2: punctuation.definition.generic.begin.arf
+      push: optional_type
+    - include: primitives
+    - match: '({{snake_case_name}})(\.)'
+      captures:
+        1: entity.arf
+        2: punctuation.separator.sequence.arf
+    - match: '{{camel_case_name}}'
+      scope: entity.name.arf
+
+  map_key:
+    - include: any_type
+    - match: ','
+      scope: punctuation.separator.sequence.arf
+      pop: true
+
+  map_value:
+    - include: any_type
+    - match: '>'
+      scope: punctuation.definition.generic.end.arf
+      pop: true
+
+  array_type:
+    - include: any_type
+    - match: '>'
+      scope: punctuation.definition.generic.end.arf
+      pop: true
+
+  optional_type:
+    - include: any_type
+    - match: '>'
+      scope: punctuation.definition.generic.end.arf
+      pop: true
+
+  primitives:
+    - match: '{{primitives}}'
+      scope: keyword.arf
+
+  basic:
+    - include: primitives
+    - include: strings
+    - include: comments
+
+  comments:
+    - match: '#'
+      scope: punctuation.definition.comment.arf
+      push: line_comment
+
+  strings:
+    - match: '"'
+      scope: punctuation.definition.string.begin.arf
+      push: double_quoted_string
+
+    - match: "'"
+      scope: punctuation.definition.string.begin.arf
+      push: single_quoted_string
+
+  double_quoted_string:
+    - meta_scope: string.quoted.double.arf
+    - match: '\\.'
+      scope: constant.character.escape.arf
+    - match: '"'
+      scope: punctuation.definition.string.end.arf
+      pop: true
+
+  single_quoted_string:
+    - meta_scope: string.quoted.single.arf
+    - match: '\\.'
+      scope: constant.character.escape.arf
+    - match: "'"
+      scope: punctuation.definition.string.end.arf
+      pop: true
+
+  line_comment:
+    - meta_scope: comment.line.arf
+    - match: $
+      pop: true
+
+  annotation:
+    - match: '(@{{snake_case_name}})(\()'
+      captures:
+        1: variable.annotation.arf
+        2: punctuation.section.parens.begin.arf
+      push: annotation_value
+    - match: '(@{{snake_case_name}})\s?'
+      scope: variable.annotation.arf
+
+  annotation_value:
+    - include: basic
+    - match: ','
+      scope: punctuation.separator.sequence.arf
+    - match: '\)'
+      pop: true
+      scope: punctuation.section.parens.end.arf
+
+  struct_definition:
+    - match: '\b(struct)\s+({{camel_case_name}})\s+({)'
+      captures:
+        1: keyword.declaration.arf
+        2: entity.name.class.arf
+        3: punctuation.section.braces.begin.arf
+      push: struct
+
+  struct:
+    - include: basic
+    - include: struct_definition
+    - include: enum_definition
+    - include: annotation
+
+    - match: '}'
+      scope: punctuation.section.braces.end.arf
+      pop: true
+    - match: '({{snake_case_name}})'
+      captures:
+        1: variable.other.member.arf
+      push: struct_field
+
+  struct_field:
+    - include: any_type
+    - match: '\s*(=)\s*(\d+)\s*(;)'
+      pop: true
+      captures:
+        1: punctuation.separator.key-value.arf
+        2: constant.numeric.arf
+        3: punctuation.terminator.arf
+
+  enum_definition:
+    - match: '\b(enum)\s+({{camel_case_name}})\s*({)'
+      captures:
+        1: keyword.arf
+        2: entity.name.enum.arf
+        3: punctuation.section.braces.begin.arf
+      push: enum
+
+  enum:
+    - include: annotation
+    - match: '([A-Z]*)\s+(=)\s+([\d]+)\s*(;)'
+      captures:
+        1: storage.type.enum.arf
+        2: punctuation.separator.key-value.arf
+        3: constant.numeric.arf
+        4: punctuation.terminator.arf
+    - match: '}'
+      scope: punctuation.section.braces.end.arf
+      pop: true
+
+  service_definition:
+    - match: '\b(service)\s+([A-Z][a-zA-Z0-9]*)\s+({)'
+      captures:
+        1: keyword.arf
+        2: entity.name.interface.arf
+        3: punctuation.section.braces.begin.arf
+      push: service
+
+  service:
+    - include: basic
+    - include: annotation
+    - match: '}'
+      pop: true
+      scope: punctuation.section.braces.end.arf
+    - match: '([a-z][a-z_0-9]*)(\()'
+      captures:
+        1: entity.name.function.arf
+        2: punctuation.section.parens.begin.arf
+      push: [service_method_return, service_method_args]
+
+  service_method_terminator:
+    - match: ';'
+      pop: true
+      scope: punctuation.terminator.arf
+
+  service_method_args:
+    - match: '\)'
+      scope: punctuation.section.parens.end.arf
+      pop: true
+    - match: ','
+      scope: invalid.illegal.arf
+    - match: '\b(stream)\b'
+      captures:
+        1: keyword.arf
+      push: service_method_streaming_arg
+    - match: '{{snake_case_name}}'
+      captures:
+        1: variable.parameter.arf
+      push: service_method_arg
+
+  service_method_streaming_arg:
+    - include: primitives
+    - include: any_type
+    - match: ','
+      scope: punctuation.separator.sequence.arf
+      pop: true
+    - match: '\)'
+      scope: punctuation.section.parens.end.arf
+      pop: 2
+
+  service_method_arg:
+    - include: primitives
+    - match: '\s(stream)'
+      captures:
+        1: invalid.invalid.arf
+    - include: any_type
+    - match: ','
+      scope: punctuation.separator.sequence.arf
+      pop: true
+    - match: '\)'
+      scope: punctuation.section.parens.end.arf
+      pop: 2
+
+  service_method_return:
+    - match: ';'
+      scope: punctuation.terminator.arf
+      pop: true
+    - match: '(->)\s+(stream\s+)?'
+      captures:
+        1: keyword.operator.arf
+        2: keyword.control.arf
+    - match: '(->)\s+(stream\s+)?(\()'
+      captures:
+        1: keyword.operator.arf
+        2: keyword.operator.arf
+        3: punctuation.section.parens.begin.arf
+      push: service_method_return_multi
+    - include: any_type
+
+  service_method_return_multi:
+    - include: primitives
+    - include: any_type
+    - match: '\)'
+      scope: punctuation.section.parens.end.arf
+      pop: true
+    - match: '(\,)'
+      scope: punctuation.separator.sequence.arf
