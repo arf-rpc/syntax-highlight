@@ -14,9 +14,9 @@ contexts:
     - include: package
     - include: basic
     - include: annotation
-    - include: struct_definition
+    - include: struct
     - include: enum_definition
-    - include: service_definition
+    - include: service
     - include: imports
 
   imports:
@@ -159,17 +159,25 @@ contexts:
       pop: true
       scope: punctuation.section.parens.end.arf
 
-  struct_definition:
-    - match: '\b(struct)\s+({{camel_case_name}})\s+({)'
+  struct:
+    - match: '\b(struct)\b'
       captures:
         1: keyword.declaration.arf
-        2: entity.name.class.arf
-        3: punctuation.section.braces.begin.arf
-      push: struct
+      push: struct-declaration
 
-  struct:
+  struct-declaration:
+    - meta_scope: meta.class.arf
+    - match: '({{camel_case_name}})'
+      captures:
+        1: entity.name.class.arf
+      set: struct-contents
+    # Escape if no valid match
+    - match: (?=\S)
+      pop: true
+
+  struct-contents:
     - include: basic
-    - include: struct_definition
+    - include: struct
     - include: enum_definition
     - include: annotation
 
@@ -189,6 +197,9 @@ contexts:
         1: punctuation.separator.key-value.arf
         2: constant.numeric.arf
         3: punctuation.terminator.arf
+    # Escape if no valid match
+    - match: (?=\S)
+      pop: true
 
   enum_definition:
     - match: '\b(enum)\s+({{camel_case_name}})\s*({)'
@@ -210,24 +221,35 @@ contexts:
       scope: punctuation.section.braces.end.arf
       pop: true
 
-  service_definition:
-    - match: '\b(service)\s+([A-Z][a-zA-Z0-9]*)\s+({)'
+  service:
+    - include: basic
+    - include: annotation
+    - match: '\b(service)\b'
       captures:
         1: keyword.arf
-        2: entity.name.interface.arf
-        3: punctuation.section.braces.begin.arf
-      push: service
+      push: service-definition
 
-  service:
+  service-definition:
+    - match: '({{camel_case_name}})'
+      captures:
+        1: entity.name.class.arf
+    - match: '({)'
+      captures:
+        1: punctuation.section.braces.begin
+      set: service-contents
+    # Escape if no valid match
+    - match: (?=\S)
+      pop: true
+
+  service-contents:
     - include: basic
     - include: annotation
     - match: '}'
       pop: true
       scope: punctuation.section.braces.end.arf
-    - match: '([a-z][a-z_0-9]*)(\()'
+    - match: '([a-z][a-z_0-9]*)'
       captures:
         1: entity.name.function.arf
-        2: punctuation.section.parens.begin.arf
       push: [service_method_return, service_method_args]
 
   service_method_terminator:
@@ -236,6 +258,8 @@ contexts:
       scope: punctuation.terminator.arf
 
   service_method_args:
+    - match: '\('
+      scope: punctuation.section.parens.begin.arf
     - match: '\)'
       scope: punctuation.section.parens.end.arf
       pop: true
