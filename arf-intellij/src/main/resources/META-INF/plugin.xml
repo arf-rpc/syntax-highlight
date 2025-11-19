@@ -1,0 +1,26 @@
+<idea-plugin>
+    <id>io.vito.arf.arf-intellij</id>
+
+    <name>arf</name>
+
+    <vendor email="hey@vito.io">Vito Sartori</vendor>
+
+    <description><![CDATA[
+        Enter short description for your plugin here.<br>
+        <em>most HTML tags may be used</em>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileType name="ARF"
+                  implementationClass="io.vito.arf.arfintellij.ArfFileType"
+                  fieldName="INSTANCE"
+                  language="ARF"
+                  extensions="arf"/>
+        <lang.syntaxHighlighterFactory
+            language="ARF"
+            implementationClass="io.vito.arf.arfintellij.ArfSyntaxHighlighterFactory" />
+        <colorSettingsPage implementation="io.vito.arf.arfintellij.ArfColorSettingsPage"/>
+    </extensions>
+</idea-plugin>
