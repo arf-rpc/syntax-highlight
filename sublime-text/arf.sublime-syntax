@@ -191,12 +191,10 @@ contexts:
 
   struct_field:
     - include: any_type
-    - match: '\s*(=)\s*(\d+)\s*(;)'
+    - match: '(;)'
       pop: true
       captures:
-        1: punctuation.separator.key-value.arf
-        2: constant.numeric.arf
-        3: punctuation.terminator.arf
+        1: punctuation.terminator.arf
     # Escape if no valid match
     - match: (?=\S)
       pop: true
@@ -211,7 +209,7 @@ contexts:
 
   enum:
     - include: annotation
-    - match: '([A-Z]*)\s+(=)\s+([\d]+)\s*(;)'
+    - match: '([A-Z_]*)\s+(=)\s+([\d]+)\s*(;)'
       captures:
         1: storage.type.enum.arf
         2: punctuation.separator.key-value.arf
@@ -247,7 +245,7 @@ contexts:
     - match: '}'
       pop: true
       scope: punctuation.section.braces.end.arf
-    - match: '([a-z][a-z_0-9]*)'
+    - match: '([A-Za-z][A-Za-z_0-9]*)(\()'
       captures:
         1: entity.name.function.arf
       push: [service_method_return, service_method_args]
@@ -301,23 +299,17 @@ contexts:
     - match: ';'
       scope: punctuation.terminator.arf
       pop: true
-    - match: '(->)\s+(stream\s+)?'
+    - match: '(->)'
       captures:
         1: keyword.operator.arf
-        2: keyword.control.arf
-    - match: '(->)\s+(stream\s+)?(\()'
-      captures:
-        1: keyword.operator.arf
-        2: keyword.operator.arf
-        3: punctuation.section.parens.begin.arf
-      push: service_method_return_multi
-    - include: any_type
+      push: service_method_return_argument
 
-  service_method_return_multi:
-    - include: primitives
+  service_method_return_argument:
+    - match: '(stream)'
+      captures:
+        1: keyword.control.arf
     - include: any_type
-    - match: '\)'
-      scope: punctuation.section.parens.end.arf
-      pop: true
-    - match: '(\,)'
-      scope: punctuation.separator.sequence.arf
+    - match: '(;)'
+      captures:
+        1: punctuation.terminator.arf
+      pop: 2
